@@ -246,7 +246,7 @@ class MainWindow:
 
     def on_about(self):
         version = subprocess.check_output(["git", "describe", "--always", "--dirty"], text=True).strip()
-        QMessageBox.information(self.window, "About qtguiconfig", "qtguiconfig " + version + "\n\nKconfig-like Qt config tool in Python")
+        QMessageBox.information(self.window, "About qtguiconfig", "qtguiconfig " + version + "\n\nKconfig-like config tool in Python and Qt")
 
     def on_about_qt(self):
         QMessageBox.aboutQt(self.window, "About Qt")
