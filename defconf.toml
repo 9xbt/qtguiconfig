@@ -1,0 +1,52 @@
+type = "schema"
+
+[[target]]
+name = "x86-64"
+default = true
+
+[[target]]
+name = "aarch64"
+
+[[option]]
+name = "CONFIG_X86_64"
+type = "none"
+prompt = "CPU features (x86-64)"
+help = "x86-64-specific CPU features"
+
+[[option]]
+name = "CONFIG_HWP"
+type = "bool"
+prompt = "Enable Intel Speed Shift (HWP)"
+help = "Enables hardware-controlled P-states"
+default = true
+parent = "CONFIG_X86_64"
+
+[[option]]
+name = "CONFIG_AVX512"
+type = "bool"
+prompt = "Enable AVX-512 support"
+help = "Enables AVX-512 extension support"
+default = false
+parent = "CONFIG_X86_64"
+
+[[option]]
+name = "CONFIG_PIC"
+type = "none"
+prompt = "Enable PIC support"
+help = "Enables progammable interrupt timer support"
+parent = "CONFIG_X86_64"
+
+[[option]]
+name = "CONFIG_APIC"
+type = "bool"
+prompt = "Enable APIC support"
+help = "Enables APIC extension support"
+default = false
+parent = "CONFIG_PIC"
+
+[[option]]
+name = "CONFIG_MAXCPUS"
+type = "value"
+prompt = "Maximum CPU amount"
+help = "Set the maximum CPU amount for symetric multiprocessing"
+default = "32"
