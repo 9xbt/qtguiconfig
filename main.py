@@ -138,11 +138,10 @@ class MainWindow:
         item = tree.topLevelItem(0)
         if not item:
             QMessageBox.warning(self.window, "Warning - qtguiconfig", "The schema appears to be empty")
-            self.schema_path = None
-        else:
-            self.window.findChild(QAction, "actionSave").setEnabled(True)
-            self.window.findChild(QAction, "actionSave_As").setEnabled(True)
-            self.window.findChild(QAction, "actionReset").setEnabled(True)
+        
+        self.window.findChild(QAction, "actionSave").setEnabled(True)
+        self.window.findChild(QAction, "actionSave_As").setEnabled(True)
+        self.window.findChild(QAction, "actionReset").setEnabled(True)
     
     def load_config(self, data, tree):
         if not self.schema_path:
