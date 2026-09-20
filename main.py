@@ -8,7 +8,7 @@ from PySide6.QtGui import QAction, QIcon, QActionGroup
 
 class MainWindow:
     def __init__(self, schema, config):
-        ui_file_name = "mainwindow.ui"
+        ui_file_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mainwindow.ui")
         ui_file = QFile(ui_file_name)
         if not ui_file.open(QIODevice.ReadOnly):
             print(f"Cannot open {ui_file_name}: {ui_file.errorString()}")
