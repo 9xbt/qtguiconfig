@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import sys, subprocess, signal, argparse
+import sys, subprocess, signal, argparse, os
 import tomllib, tomli_w
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QApplication, QMessageBox, QFileDialog, QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QMenu
