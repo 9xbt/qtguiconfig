@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import sys, subprocess, signal
+import sys, subprocess, signal, argparse
 import tomllib, tomli_w
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QApplication, QMessageBox, QFileDialog, QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QMenu
@@ -7,7 +7,7 @@ from PySide6.QtCore import QFile, QIODevice, Qt
 from PySide6.QtGui import QAction, QIcon, QActionGroup
 
 class MainWindow:
-    def __init__(self):
+    def __init__(self, schema, config):
         ui_file_name = "mainwindow.ui"
         ui_file = QFile(ui_file_name)
         if not ui_file.open(QIODevice.ReadOnly):
@@ -20,10 +20,16 @@ class MainWindow:
             print(loader.errorString())
             sys.exit(-1)
 
-        self.schema_path = None
-        self.config_path = None
+        self.schema_path = schema
+        self.config_path = config
         self.target_group = None
         self.current = None
+
+        if schema:
+            self.open_path(schema)
+        if config:
+            self.open_path(config)
+
         self.connect_actions()
         self.window.findChild(QLineEdit, "itemLineEdit").hide()
         self.window.show()
@@ -55,7 +61,7 @@ class MainWindow:
             title_label.setText(opt["prompt"])
             title_label.show()
             help_label = self.window.findChild(QLabel, "itemHelpLabel")
-            help_label.setText(opt["help"])
+            help_label.setText(f"{opt["help"]} ({opt["name"]})")
             help_label.show()
             textbox = self.window.findChild(QLineEdit, "itemLineEdit")
             textbox.setVisible(opt["type"] == "value")
@@ -141,6 +147,7 @@ class MainWindow:
     def load_config(self, data, tree):
         if not self.schema_path:
             QMessageBox.warning(self.window, "Load error - qtguiconfig", "Please load the schema first!")
+            return
 
         values = {k: v for k, v in data.items() if k != "type"}
 
@@ -162,16 +169,7 @@ class MainWindow:
 
         self.window.setWindowTitle(self.config_path + " - qtguiconfig")
         
-    def on_open(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self.window,
-            "Open Config or Schema",
-            "",
-            "TOML files (*.toml);;All Files (*)"
-        )
-        if not path:
-            return
-
+    def open_path(self, path):
         kind, data = self.load_toml(path)
         if data is None:
             return
@@ -183,6 +181,18 @@ class MainWindow:
         elif kind == "config":
             self.config_path = path
             self.load_config(data, tree)
+
+    def on_open(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self.window,
+            "Open Config or Schema",
+            "",
+            "All Supported Files (*.toml *.config);;TOML schema (*.toml);;.config files (*.config);;All Files (*)"
+        )
+        if not path:
+            return
+
+        self.open_path(path)
 
     def save_config(self, path):
         tree = self.window.findChild(QTreeWidget, "treeWidget")
@@ -224,8 +234,8 @@ class MainWindow:
         path, _ = QFileDialog.getSaveFileName(
             self.window,
             "Save Config",
-            "",
-            "TOML files (*.toml);;All Files (*)"
+            ".config",
+            ".config files (*.config);;All Files (*)"
         )
         if not path:
             return
@@ -237,12 +247,7 @@ class MainWindow:
         app.quit()
 
     def on_reset(self):
-        kind, data = self.load_toml(self.schema_path)
-        if data is None:
-            return
-        
-        tree = self.window.findChild(QTreeWidget, "treeWidget")
-        self.load_schema(data, tree)
+        self.open_path(self.schema_path)
 
     def on_about(self):
         version = subprocess.check_output(["git", "describe", "--always", "--dirty"], text=True).strip()
@@ -251,8 +256,33 @@ class MainWindow:
     def on_about_qt(self):
         QMessageBox.aboutQt(self.window, "About Qt")
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="qtguiconfig - Kconfig-like config tool in Python and Qt")
+    parser.add_argument("--schema", help="Path to schema TOML to load on startup")
+    parser.add_argument("--config", help="Path to config TOML or .config to load on startup")
+    parser.add_argument("--get", metavar="KEY", help="Dump a config value and exit")
+    return parser.parse_args()
+
+def query_conf(config, key):
+    with open(config, "rb") as f:
+        data = tomllib.load(f)
+    if key not in data:
+        print(f"qtguiconfig: {key} not found in config", file=sys.stderr)
+        sys.exit(1)
+    
+    value = data[key]
+    if (isinstance(value, bool)):
+        print ("y" if value else "n")
+    else:
+        print(value)
+
 if __name__ == "__main__":
+    args = parse_args()
+    if args.get:
+        query_conf(args.config, args.get)
+        sys.exit(0)
+
     app = QApplication(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    main_window = MainWindow()
+    main_window = MainWindow(schema=args.schema, config=args.config)
     sys.exit(app.exec())
