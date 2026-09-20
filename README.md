@@ -1,5 +1,5 @@
 # qtguiconfig
-qtguiconfig is a Kconfig-like config tool written in Python and Qt. It loads and exports in TOML format and is very lightweight (<300loc).
+qtguiconfig is a Kconfig-like config tool written in Python and Qt. It loads and exports in TOML format and is very lightweight (~300loc).
 
 For a usage example, check example/defconf.toml.
 

@@ -260,6 +260,7 @@ def parse_args():
     parser.add_argument("--schema", help="Path to schema TOML to load on startup")
     parser.add_argument("--config", help="Path to config TOML or .config to load on startup")
     parser.add_argument("--get", metavar="KEY", help="Dump a config value and exit")
+    parser.add_argument("--defconf", metavar="OUT", help="Generate the default config from the schema and exit")
     return parser.parse_args()
 
 def query_conf(config, key):
@@ -275,11 +276,48 @@ def query_conf(config, key):
     else:
         print(value)
 
+def make_defconf(schema_data: dict) -> dict:
+    values = {"type": "config"}
+    for opt in schema_data.get("option", []):
+        if opt["type"] == "bool":
+            values[opt["name"]] = bool(opt.get("default", False))
+        elif opt["type"] == "value":
+            values[opt["name"]] = opt.get("default", "")
+
+    targets = schema_data.get("target", [])
+    default_target = next((t["name"] for t in targets if t.get("default")), None)
+    if default_target:
+        values["target"] = default_target
+
+    return values
+
+def defconf(path):
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+    except Exception as e:
+        print(f"qtguiconfig: failed to load file: {e}")
+        sys.exit(1)
+
+    kind = data.get("type")
+    if kind != "schema":
+        print("qtguiconfig: --defconf requires a schema", file=sys.stderr)
+        sys.exit(1)
+
+    values = make_defconf(data)
+    with open(args.defconf, "wb") as f:
+        tomli_w.dump(values, f)
+    
+    print(f"qtguiconfig: default config written to {args.defconf}")
+    sys.exit(0)
+
 if __name__ == "__main__":
     args = parse_args()
     if args.get:
         query_conf(args.config, args.get)
         sys.exit(0)
+    if args.defconf:
+        defconf(args.schema)
 
     app = QApplication(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
