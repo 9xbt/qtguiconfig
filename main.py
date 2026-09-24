@@ -203,6 +203,7 @@ class MainWindow:
         # print(target)
 
         values = {"type": "config", "target": target}
+        print("#pragma once\n")
 
         def walk(item):
             opt = item.data(0, Qt.UserRole)
@@ -210,12 +211,12 @@ class MainWindow:
                 value = item.checkState(0) == Qt.Checked
                 values[opt["name"]] = value
                 print(f"#undef {opt["name"]}")
-                print(f"#define {opt["name"]} {"1" if value else "0"}")
+                print(f"#define {opt["name"]} {"1" if value else "0"}\n")
             elif opt["type"] == "value":
                 value = opt.get("default")
                 values[opt["name"]] = value
                 print(f"#undef {opt["name"]}")
-                print(f"#define {opt["name"]} {value}")
+                print(f"#define {opt["name"]} {value}\n")
 
             for i in range(item.childCount()):
                 walk(item.child(i))
