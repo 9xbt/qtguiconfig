@@ -19,7 +19,8 @@ class MainWindow:
         if not self.window:
             print(loader.errorString())
             sys.exit(-1)
-
+        QApplication.instance().aboutToQuit.connect(self.dump_c_header)
+    
         self.schema_path = schema
         self.config_path = config
         self.target_group = None
@@ -203,20 +204,13 @@ class MainWindow:
         # print(target)
 
         values = {"type": "config", "target": target}
-        print("#pragma once\n")
 
         def walk(item):
             opt = item.data(0, Qt.UserRole)
             if opt["type"] == "bool":
-                value = item.checkState(0) == Qt.Checked
-                values[opt["name"]] = value
-                print(f"#undef {opt["name"]}")
-                print(f"#define {opt["name"]} {"1" if value else "0"}\n")
+                values[opt["name"]] = item.checkState(0) == Qt.Checked
             elif opt["type"] == "value":
-                value = opt.get("default")
-                values[opt["name"]] = value
-                print(f"#undef {opt["name"]}")
-                print(f"#define {opt["name"]} {value}\n")
+                values[opt["name"]] = opt.get("default")
 
             for i in range(item.childCount()):
                 walk(item.child(i))
@@ -228,6 +222,29 @@ class MainWindow:
             tomli_w.dump(values, f)
 
         self.window.setWindowTitle(self.config_path + " - qtguiconfig")
+
+    def dump_c_header(self):
+        tree = self.window.findChild(QTreeWidget, "treeWidget")
+        print("#pragma once\n")
+
+        def walk(item):
+            opt = item.data(0, Qt.UserRole)
+            if opt["type"] == "bool":
+                value = item.checkState(0) == Qt.Checked
+                print(f"#ifndef {opt["name"]}")
+                print(f"#define {opt["name"]} {"1" if value else "0"}")
+                print(f"#endif\n")
+            elif opt["type"] == "value":
+                value = opt.get("default")
+                print(f"#ifndef {opt["name"]}")
+                print(f"#define {opt["name"]} {value}")
+                print(f"#endif\n")
+
+            for i in range(item.childCount()):
+                walk(item.child(i))
+
+        for i in range(tree.topLevelItemCount()):
+            walk(tree.topLevelItem(i))
 
     def on_save(self):
         if not self.config_path:
@@ -249,8 +266,12 @@ class MainWindow:
         self.config_path = path
         self.save_config(self.config_path)
 
+    def on_close(self, event):
+        self.dump_c_header()
+        event.accept()
+
     def on_quit(self):
-        app.quit()
+        self.window.close()
 
     def on_reset(self):
         self.open_path(self.schema_path)
