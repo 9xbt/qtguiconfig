@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-import sys, subprocess, signal, argparse, os
-import tomllib, tomli_w
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import QApplication, QMessageBox, QFileDialog, QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QMenu
-from PySide6.QtCore import QFile, QIODevice, Qt
-from PySide6.QtGui import QAction, QIcon, QActionGroup
+import sys, signal, os, tomllib
 
 class MainWindow:
     def __init__(self, schema, config):
@@ -218,6 +213,8 @@ class MainWindow:
         for i in range(tree.topLevelItemCount()):
             walk(tree.topLevelItem(i))
 
+        import tomli_w
+
         with open(path, "wb") as f:
             tomli_w.dump(values, f)
 
@@ -277,6 +274,7 @@ class MainWindow:
         self.open_path(self.schema_path)
 
     def on_about(self):
+        import subprocess
         version = subprocess.check_output(["git", "describe", "--always", "--dirty"], text=True).strip()
         QMessageBox.information(self.window, "About qtguiconfig", "qtguiconfig " + version + "\n\nKconfig-like config tool in Python and Qt")
 
@@ -284,30 +282,32 @@ class MainWindow:
         QMessageBox.aboutQt(self.window, "About Qt")
 
 def parse_args():
+    import argparse
     parser = argparse.ArgumentParser(description="qtguiconfig - Kconfig-like config tool in Python and Qt")
     parser.add_argument("--schema", help="Path to schema TOML to load on startup")
     parser.add_argument("--config", help="Path to config TOML or .config to load on startup")
-    parser.add_argument("--get", metavar="KEY", help="Dump a config value and exit")
+    parser.add_argument("--dump-makefile", action="store_true", help="Dump a makefile with the config values")
     return parser.parse_args()
 
-def query_conf(config, key):
+def dump_makefile(config):
     with open(config, "rb") as f:
         data = tomllib.load(f)
-    if key not in data:
-        print(f"qtguiconfig: {key} not found in config", file=sys.stderr)
-        sys.exit(1)
-    
-    value = data[key]
-    if (isinstance(value, bool)):
-        print ("y" if value else "n")
-    else:
-        print(value)
+    for key, value in data.items():
+        if isinstance(value, bool):
+            print(f"CONFIG_{key} := {'y' if value else 'n'}")
+        else:
+            print(f"CONFIG_{key} := {value}")
 
 if __name__ == "__main__":
     args = parse_args()
-    if args.get:
-        query_conf(args.config, args.get)
+    if args.dump_makefile:
+        dump_makefile(args.config)
         sys.exit(0)
+
+    from PySide6.QtUiTools import QUiLoader
+    from PySide6.QtWidgets import QApplication, QMessageBox, QFileDialog, QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QMenu
+    from PySide6.QtCore import QFile, QIODevice, Qt
+    from PySide6.QtGui import QAction, QIcon, QActionGroup
 
     app = QApplication(sys.argv)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
